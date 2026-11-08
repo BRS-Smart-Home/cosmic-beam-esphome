@@ -1,4 +1,4 @@
-# Blumfeldt Cosmic Beam (non-smart, display board "ZD-90F") -> ESPHome thermostat
+# Blumfeldt (Klarstein) Cosmic Beam (non-smart, display board "ZD-90F") -> ESPHome thermostat
 # Board: ESP32-C3 Super Mini
 # Full guide, wiring and safety notes: README.md
 #

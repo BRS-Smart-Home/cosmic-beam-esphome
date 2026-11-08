@@ -1,6 +1,6 @@
-# Blumfeldt Cosmic Beam → ESPHome smart heater
+# Blumfeldt (Klarstein) Cosmic Beam → ESPHome smart heater
 
-Turn the **non-smart** (remote-only) Blumfeldt Cosmic Beam infrared heater into a local
+Turn the **non-smart** (remote-only) Blumfeldt (Klarstein) Cosmic Beam infrared heater into a local
 Home Assistant thermostat with an **ESP32-C3 Super Mini** and ESPHome — no cloud, no Tuya.
 
 What you get:
@@ -39,7 +39,7 @@ What you get:
 
 | Item | Value |
 |---|---|
-| Heater | Blumfeldt Cosmic Beam, **non-smart** version (IR remote only) |
+| Heater | Blumfeldt (Klarstein) Cosmic Beam, **non-smart** version (IR remote only) |
 | Display / control board | Marked **`ZD-90F PCB V1.2 THC-B 2020/4/5`** (black front, green back) |
 | Original controller | **U1**, 20-pin SOP chip with a sticker (`0106E1 GY-24H` on this unit) |
 | Connector to power board | **4-pin** (black, red, white, yellow) + **2-pin** (temperature sensor) |
@@ -307,5 +307,5 @@ after switching ON and no longer controls anything.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). No affiliation with Blumfeldt / Chal-Tec. Brand names are
+MIT — see [LICENSE](LICENSE). No affiliation with Blumfeldt (Klarstein) / Chal-Tec. Brand names are
 used only to identify the hardware.
