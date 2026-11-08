@@ -27,12 +27,26 @@ esphome:
     - priority: -100
       then:
         - delay: 5s
-        # Heater power cut -> U1 restarted in standby, so forget the stored display state
+        # Real mains power-on -> U1 also restarted in standby.
+        # (A brownout or software restart only resets the ESP, so keep the stored state.)
         - lambda: |-
             std::string r = id(reset_reason).state;
-            if (r.find("ower") != std::string::npos || r.find("rownout") != std::string::npos) {
+            std::transform(r.begin(), r.end(), r.begin(), ::tolower);
+            if (r.find("power on") != std::string::npos) {
               id(u1_on) = false;
             }
+        - logger.log:
+            level: INFO
+            format: "DISPLAY: boot, reset reason '%s', screen assumed %s"
+            args: [ 'id(reset_reason).state.c_str()', 'id(u1_on) ? "ON" : "OFF"' ]
+        # Always start OFF, but with the last target temperature
+        - climate.control:
+            id: heater
+            mode: "OFF"
+            target_temperature: !lambda 'return id(saved_target);'
+        - globals.set:
+            id: restore_done
+            value: 'true'
         - script.execute: sync_display
 
 esp32:
@@ -44,6 +58,11 @@ esp32:
 logger:
 
 debug:
+
+# Save state (display state, target temperature) to flash immediately, not once a minute.
+# Otherwise a restart shortly after a switch restores a stale display state.
+preferences:
+  flash_write_interval: 0s
 
 api:
   id: api_server
@@ -70,6 +89,13 @@ globals:
     restore_value: true
     initial_value: 'false'
   - id: self_tx          # true while the ESP itself is sending (ignore its own echo)
+    type: bool
+    initial_value: 'false'
+  - id: saved_target     # last target temperature, kept across reboots / power cuts
+    type: float
+    restore_value: true
+    initial_value: '20.0'
+  - id: restore_done     # don't save until the stored target has been restored at boot
     type: bool
     initial_value: 'false'
 
@@ -100,6 +126,10 @@ remote_receiver:
             lambda: 'return x.address == 0xFF00 && x.command == 0xAD52 && !id(self_tx);'
           then:
             - lambda: 'id(u1_on) = !id(u1_on);'   # a real remote toggled the display
+            - logger.log:
+                level: INFO
+                format: "DISPLAY: remote press heard -> screen now %s"
+                args: [ 'id(u1_on) ? "ON" : "OFF"' ]
 
 remote_transmitter:
   id: ir_tx
@@ -118,6 +148,11 @@ sensor:
     id: room_temp
     name: "Room temperature (HA)"
     entity_id: ${room_sensor}
+
+  # Wi-Fi signal strength - useful because the metal chassis shields the antenna
+  - platform: wifi_signal
+    name: "WiFi signal"
+    update_interval: 60s
 
   # Heater's own NTC: 5 V -> NTC -> GPIO3 -> R10 (10k) -> GND
   - platform: adc
@@ -164,7 +199,7 @@ climate:
     id: heater
     name: "Heater"
     sensor: heater_temp
-    on_boot_restore_from: default_preset   # always start OFF after boot / power cut
+    on_boot_restore_from: default_preset   # start OFF; on_boot then restores the last target
     min_heating_off_time: 5s
     min_heating_run_time: 5s
     min_idle_time: 5s
@@ -189,6 +224,8 @@ climate:
       - output.turn_off: out_main
       - script.stop: max_run_guard
     on_state:
+      - lambda: |-
+          if (id(restore_done)) id(saved_target) = id(heater).target_temperature;
       - script.execute: sync_display
 
 # ---------- Display sync + safety scripts ----------
@@ -199,6 +236,10 @@ script:
       - globals.set:
           id: self_tx
           value: 'true'
+      - logger.log:
+          level: INFO
+          format: "DISPLAY: sending power code (screen was %s -> should now be %s)"
+          args: [ 'id(u1_on) ? "ON" : "OFF"', 'id(u1_on) ? "OFF" : "ON"' ]
       - remote_transmitter.transmit_nec:
           transmitter_id: ir_tx
           address: 0xFF00
@@ -216,6 +257,10 @@ script:
           condition:
             lambda: 'return (id(heater).mode == climate::CLIMATE_MODE_HEAT) != id(u1_on);'
           then:
+            - logger.log:
+                level: INFO
+                format: "DISPLAY: mode=%s, screen=%s -> mismatch, toggling"
+                args: [ 'id(heater).mode == climate::CLIMATE_MODE_HEAT ? "HEAT" : "OFF"', 'id(u1_on) ? "ON" : "OFF"' ]
             - script.execute: send_power
             - script.wait: send_power
 
@@ -233,7 +278,23 @@ button:
   - platform: template
     name: "Display: resync"
     on_press:
-      - script.execute: send_power
+      # Flip the real screen but NOT the ESP's belief -> fixes a mismatch.
+      # (Using send_power here would flip both and keep them out of step.)
+      - globals.set:
+          id: self_tx
+          value: 'true'
+      - logger.log:
+          level: INFO
+          format: "DISPLAY: resync pressed - flipping screen, belief stays %s"
+          args: [ 'id(u1_on) ? "ON" : "OFF"' ]
+      - remote_transmitter.transmit_nec:
+          transmitter_id: ir_tx
+          address: 0xFF00
+          command: 0xAD52
+      - delay: 500ms
+      - globals.set:
+          id: self_tx
+          value: 'false'
 
 # ---------- Safety: OFF if Home Assistant unreachable for 5 min ----------
 # Delete this block if the heater should keep regulating on its own without HA.

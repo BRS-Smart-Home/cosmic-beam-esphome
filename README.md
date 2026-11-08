@@ -8,8 +8,9 @@ What you get:
 - `climate` entity in Home Assistant (Heat / Off, target temperature)
 - Room temperature from the heater's **own NTC sensor** (no extra sensor needed)
 - The heater's **original LED display keeps working** and follows Heat / Off
-- Safety logic on the ESP itself: starts **Off** after every boot or power cut, max 3 h
-  continuous heating, sensor-fault cutoff, Off if Home Assistant is unreachable for 5 min
+- Safety logic on the ESP itself: starts **Off** after every boot or power cut (but
+  **remembers the last target temperature**), max 3 h continuous heating, sensor-fault
+  cutoff, Off if Home Assistant is unreachable for 5 min
 - **Reversible:** the only change to the original board is one trace cut. If you cut it
   cleanly, a solder bridge puts the heater back to stock — see
   [Reverting the conversion](#reverting-the-conversion)
@@ -360,11 +361,33 @@ U1's only input is the IR receiver, and the power button is a toggle. So the ESP
 - injects the power code (`NEC 0xFF00 / 0xAD52`) into the receiver's OUT line whenever the
   thermostat changes between **Heat** and **Off** (reaching the target does **not** send
   anything — the display stays ON while the thermostat idles);
-- remembers whether U1 is ON (stored across restarts);
-- knows that after a **mains power cut** U1 always starts in standby (it checks the ESP's
-  reset reason);
+- remembers whether U1 is ON, saved to flash **immediately** (`preferences:
+  flash_write_interval: 0s`) so a restart right after a switch can't restore a stale state;
+- knows that after a **real mains power-on** U1 always starts in standby (it checks the
+  ESP's reset reason). A brownout or software restart only resets the ESP, so the stored
+  state is kept;
 - optionally listens on GPIO7, so a press on a real remote is tracked too;
-- exposes a **"Display: resync"** button in case the display ever ends up inverted.
+- exposes a **"Display: resync"** button in case the display ever ends up inverted. It
+  flips only the real screen, **not** the ESP's stored belief — that's what brings the two
+  back in step.
+
+Every display action is logged with a `DISPLAY:` prefix, so you can see exactly what the
+ESP sent and what it believes the screen shows:
+
+```
+DISPLAY: boot, reset reason 'Power on reset', screen assumed OFF
+DISPLAY: mode=HEAT, screen=OFF -> mismatch, toggling
+DISPLAY: sending power code (screen was OFF -> should now be ON)
+DISPLAY: resync pressed - flipping screen, belief stays ON
+```
+
+### Boot behaviour
+
+After every boot or power cut the thermostat starts in **Off** (safe), but with the **last
+target temperature** you set — it's stored in flash (`saved_target`) and restored at boot.
+If you'd rather resume heating exactly as before a power cut, set
+`on_boot_restore_from: memory` instead (and remove the `climate.control` step in
+`on_boot`); consider the safety implications of a heater restarting unattended.
 
 The number on the display is U1's own reading — U1's set temperature is shown for ~5 s
 after switching ON and no longer controls anything.
@@ -417,7 +440,8 @@ undo; in that case use a short wire from the U1 pin to the R16 pad.
 | Relay never clicks, ESP shows "Heating" | Measure R16's ESP-side pad: should be ~3.3 V while heating. 0 V → wrong pin / wire, or U1 still connected. |
 | Relay only clicks the first time | Thermostat minimum times. This config uses 5 s; earlier versions used 3 min. |
 | Heater heats regardless of the ESP | U1 still connected to R16 (cut on the wrong side), or a solder bridge on Q6 / the white line. Unplug and check with continuity. |
-| Display inverted (ON when Off) | Press **Display: resync** once. |
+| Display inverted (ON when Off) | Press **Display: resync** once. Check the `DISPLAY:` log lines to see when it went out of step. |
+| Display goes out of step after an update / restart | Make sure `preferences: flash_write_interval: 0s` is in the config (saves the display state immediately). |
 | Temperature ~4 °C off | Recalibrate (see above). |
 | ESP boot-loops right after flashing a used board | Flash encryption / old firmware — `erase-flash --force` in download mode, then flash again. |
 | Wi-Fi `Auth Expired` | `output_power: 8.5dB` (already in the config). |
