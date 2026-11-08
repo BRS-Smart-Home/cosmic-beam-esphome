@@ -258,6 +258,18 @@ was fine on the bench. Plan for some tuning during assembly:
   cause the "Auth Expired" resets described in Step 1.
 - **Move the access point closer** or add one near the heater if the signal stays marginal.
 
+**Measured on the original unit** (ESP32-C3 Super Mini, stock on-board antenna, no
+antenna modification, `output_power: 8.5dB`, same access point and distance):
+
+| Situation | Signal strength |
+|---|---|
+| On the bench, outside the heater | −58 to −63 dB |
+| Installed inside the heater's metal chassis | **−70 dB** — stable and usable |
+
+So the chassis cost roughly 7–12 dB here, which still left a working connection without
+any antenna work. Your result depends on the distance to your access point; if you're
+already around −70 dB on the bench, expect to need the steps above.
+
 A weak signal is not dangerous: if the ESP loses Home Assistant for more than 5 minutes it
 switches the heater **Off**. But frequent dropouts make the heater turn off unexpectedly.
 
