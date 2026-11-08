@@ -30,12 +30,13 @@ What you get:
 6. [Step 2 — Verify the board with a multimeter](#step-2--verify-the-board-with-a-multimeter)
 7. [Step 3 — Disconnect U1 from the relay transistor](#step-3--disconnect-u1-from-the-relay-transistor)
 8. [Step 4 — Wire the ESP32-C3](#step-4--wire-the-esp32-c3)
-9. [Step 5 — First power-up and tests](#step-5--first-power-up-and-tests)
-10. [Calibrating the temperature sensor](#calibrating-the-temperature-sensor)
-11. [How the display sync works](#how-the-display-sync-works)
-12. [Reverting the conversion](#reverting-the-conversion)
-13. [Known limitations](#known-limitations)
-14. [Troubleshooting](#troubleshooting)
+9. [Photos of the finished build](#photos-of-the-finished-build)
+10. [Step 5 — First power-up and tests](#step-5--first-power-up-and-tests)
+11. [Calibrating the temperature sensor](#calibrating-the-temperature-sensor)
+12. [How the display sync works](#how-the-display-sync-works)
+13. [Reverting the conversion](#reverting-the-conversion)
+14. [Known limitations](#known-limitations)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -203,6 +204,11 @@ U1 pin ──✂── trace ── R16 (1 kΩ) ── Q6 base
 > on either side, so the gap can later be bridged again with solder or a short wire
 > (see [Reverting the conversion](#reverting-the-conversion)).
 
+> **About the photo of the cut:** the cut on the original unit is very clean, so in
+> [photo 7](#photos-of-the-finished-build) it is hard to see that the leg is separated at
+> all — but it **is** cut, and continuity confirms it. Don't rely on looks: always check
+> with the multimeter that R16's U1-side pad no longer beeps with the U1 pin.
+
 Optional test before soldering the ESP: plug the heater in and switch it ON with the remote —
 the display shows ON, but **no relay click and no heat** (white stays ~17 V). U1 is now out
 of the loop.
@@ -228,6 +234,51 @@ Nothing else needs cutting: GPIO3 and GPIO7 only listen, so U1 keeps reading the
 the IR receiver exactly as before. GPIO6 is configured open-drain and only ever pulls OUT low.
 
 Insulate everything, fix the ESP behind the plastic display window, away from the element.
+
+---
+
+## Photos of the finished build
+
+Wire colours used on the original unit:
+
+| Wire | Display board | ESP32-C3 |
+|---|---|---|
+| Black | `VSS` | **G** |
+| Red | `VDD` (+5 V) | **5V** |
+| Blue | R16, U1-side pad | **GPIO5** |
+| Green | NTC connector upper pin (next to C5) | **GPIO3** |
+| Yellow | IR receiver OUT | **GPIO6** |
+| Orange | IR receiver OUT | **GPIO7** |
+
+**1. Back of the display board, all wires connected**
+
+<img src="photos/01-board-overview.jpg" width="420" alt="Back of the ZD-90F display board with all six ESP wires soldered">
+
+**2. ESP32-C3 Super Mini side** — black/red on G/5V, blue/yellow/orange on GPIO5/6/7,
+green on GPIO3
+
+<img src="photos/02-esp32-c3-wiring.jpg" width="420" alt="ESP32-C3 Super Mini with six wires soldered">
+
+**3. R16 / Q6 (blue wire) and the NTC connector (green wire on the upper pin, next to C5)**
+— the 4-wire cable to the power board (yellow, white, red, black) is on the right
+
+<img src="photos/03-r16-q6-ntc-and-cable.jpg" width="420" alt="Blue wire on R16, green wire on the NTC connector">
+
+**4. IR receiver tap** — yellow (GPIO6) and orange (GPIO7) both on the receiver's OUT pad
+
+<img src="photos/04-ir-receiver-tap.jpg" width="420" alt="Yellow and orange wires on the IR receiver OUT pad">
+
+**5–6. U1, with the `VSS` (black) and `VDD` (red) wires**
+
+<img src="photos/05-u1-vss.jpg" width="320" alt="U1 and the VSS pad"> <img src="photos/06-u1-vdd-r16.jpg" width="320" alt="U1, VDD pad and the blue wire to R16">
+
+**7. The cut U1 leg (red arrow)**
+
+<img src="photos/07-u1-cut-leg.jpg" width="420" alt="U1 with a red arrow marking the cut leg">
+
+> The cut is very clean, so in this photo it is hard to see that the leg is actually
+> separated — but it **is** cut, 100 %. On your own board, confirm the cut with continuity
+> (R16's U1-side pad must not beep with that U1 pin), not by eye.
 
 ---
 
