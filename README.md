@@ -128,7 +128,8 @@ After switching ON, the LED display shows U1's own **set temperature for ~5 s**,
 - For live measurements: one hand, probe only the points listed, stay away from the power
   board.
 - Mount the ESP away from the heating element, behind the plastic display window
-  (the metal body blocks Wi-Fi). Keep the housing's IP44 seals intact.
+  (the metal chassis blocks Wi-Fi — see [Wi-Fi inside the metal chassis](#wi-fi-inside-the-metal-chassis)).
+  Keep the housing's IP44 seals intact.
 - Don't leave the heater unattended until you've tested every safety function below.
 
 ---
@@ -234,6 +235,31 @@ Nothing else needs cutting: GPIO3 and GPIO7 only listen, so U1 keeps reading the
 the IR receiver exactly as before. GPIO6 is configured open-drain and only ever pulls OUT low.
 
 Insulate everything, fix the ESP behind the plastic display window, away from the element.
+
+### Wi-Fi inside the metal chassis
+
+The heater has a **metal chassis**, and that includes the compartment holding the control
+board, the LED display and the ESP32-C3 Super Mini. Metal around the ESP shields its tiny
+on-board antenna, so the **Wi-Fi signal can be weak** once the case is closed — even if it
+was fine on the bench. Plan for some tuning during assembly:
+
+- **Check the signal before closing the case.** Assemble loosely, power the heater, and
+  watch the Wi-Fi signal in the ESPHome logs (`Signal strength: -xx dB`). Close the case
+  and check again: around −70 dB or better is fine, worse than about −80 dB means
+  dropouts. Adding a `wifi_signal` sensor to the config makes this easy to track in
+  Home Assistant.
+- **Reposition the ESP.** Put the antenna end of the board (the end opposite the USB-C
+  socket) as close as possible to the plastic display window or any other non-metal
+  opening, and keep it off the metal walls — a few millimetres of spacing already helps.
+- **Antenna tuning / external antenna.** If repositioning isn't enough, use an ESP32-C3
+  board with a u.FL connector and a small external antenna routed to the plastic window,
+  or (for the experienced) modify the Super Mini's antenna. Some Super Mini boards also
+  work better with `output_power` raised from 8.5 dB — test a few values; too high can
+  cause the "Auth Expired" resets described in Step 1.
+- **Move the access point closer** or add one near the heater if the signal stays marginal.
+
+A weak signal is not dangerous: if the ESP loses Home Assistant for more than 5 minutes it
+switches the heater **Off**. But frequent dropouts make the heater turn off unexpectedly.
 
 ---
 
@@ -360,6 +386,8 @@ undo; in that case use a short wire from the U1 pin to the R16 pad.
 - **GPIO3 is wired directly** to the NTC divider. If the two sensor wires were ever shorted,
   5 V would reach GPIO3. A 10 kΩ series resistor removes that risk.
 - **Temperature clips at ~32 °C** (see above).
+- **Wi-Fi range is reduced** by the heater's metal chassis; antenna placement matters
+  (see [Wi-Fi inside the metal chassis](#wi-fi-inside-the-metal-chassis)).
 - **Heating power levels** of the original remote aren't reproduced — the ESP switches the
   main relay on/off only. (The yellow line was never switched by U1 in testing.)
 - The display's 5-second set-temperature flash shows U1's stored value, not Home Assistant's
@@ -381,6 +409,7 @@ undo; in that case use a short wire from the U1 pin to the R16 pad.
 | Temperature ~4 °C off | Recalibrate (see above). |
 | ESP boot-loops right after flashing a used board | Flash encryption / old firmware — `erase-flash --force` in download mode, then flash again. |
 | Wi-Fi `Auth Expired` | `output_power: 8.5dB` (already in the config). |
+| Works on the bench, drops off once the case is closed | Metal chassis shielding — reposition the ESP's antenna end toward the plastic display window, see [Wi-Fi inside the metal chassis](#wi-fi-inside-the-metal-chassis). |
 
 ---
 
