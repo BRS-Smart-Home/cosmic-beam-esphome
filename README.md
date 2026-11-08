@@ -10,6 +10,9 @@ What you get:
 - The heater's **original LED display keeps working** and follows Heat / Off
 - Safety logic on the ESP itself: starts **Off** after every boot or power cut, max 3 h
   continuous heating, sensor-fault cutoff, Off if Home Assistant is unreachable for 5 min
+- **Reversible:** the only change to the original board is one trace cut. If you cut it
+  cleanly, a solder bridge puts the heater back to stock — see
+  [Reverting the conversion](#reverting-the-conversion)
 
 > ⚠️ **This is a mains-powered 2.4 kW heater.** You are modifying it at your own risk.
 > Read the [Safety](#safety) section before you start. This guide documents one working
@@ -30,8 +33,9 @@ What you get:
 9. [Step 5 — First power-up and tests](#step-5--first-power-up-and-tests)
 10. [Calibrating the temperature sensor](#calibrating-the-temperature-sensor)
 11. [How the display sync works](#how-the-display-sync-works)
-12. [Known limitations](#known-limitations)
-13. [Troubleshooting](#troubleshooting)
+12. [Reverting the conversion](#reverting-the-conversion)
+13. [Known limitations](#known-limitations)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -195,6 +199,10 @@ U1 pin ──✂── trace ── R16 (1 kΩ) ── Q6 base
 3. Check: R16's U1-side pad must **no longer** beep with that U1 pin; R16 must still be
    connected to Q6.
 
+> **Keep it reversible:** make the cut narrow and clean, and don't scrape into the pads
+> on either side, so the gap can later be bridged again with solder or a short wire
+> (see [Reverting the conversion](#reverting-the-conversion)).
+
 Optional test before soldering the ESP: plug the heater in and switch it ON with the remote —
 the display shows ON, but **no relay click and no heat** (white stays ~17 V). U1 is now out
 of the loop.
@@ -271,6 +279,26 @@ U1's only input is the IR receiver, and the power button is a toggle. So the ESP
 
 The number on the display is U1's own reading — U1's set temperature is shown for ~5 s
 after switching ON and no longer controls anything.
+
+---
+
+## Reverting the conversion
+
+The conversion is **reversible if you cut the U1 trace cleanly**. Nothing else on the
+original board is modified: the other ESP wires are only soldered to existing pads and
+listen-only points.
+
+1. Heater unplugged. Desolder the ESP wires from the `VDD`, `VSS`, R16, NTC and IR
+   receiver points.
+2. Close the cut: bridge the gap between the U1 pin and R16's U1-side pad with a blob of
+   solder or a short piece of thin wire. If you lifted the U1 leg instead, resolder it to
+   its pad.
+3. Check with the multimeter: R16's U1-side pad must **beep with that U1 pin** again.
+4. Plug the heater in and test with the original remote: ON gives a relay click and heat,
+   OFF switches it off, and the display behaves as before.
+
+A rough cut (copper torn up, pads damaged, or a pin bent or broken off) is harder to
+undo; in that case use a short wire from the U1 pin to the R16 pad.
 
 ---
 
